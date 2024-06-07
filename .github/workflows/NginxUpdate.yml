@@ -1,0 +1,30 @@
+name: Nginx Update workflow
+on:
+  workflow_dispatch:
+  push:
+    branches:
+        - main
+    paths:
+      - 'nginx/**'
+  pull_request:
+    branches:
+        - main
+    paths:
+      - 'nginx/**'
+
+jobs:
+    update:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v2
+
+            - name: Setup SSH
+              uses: webfactory/ssh-agent@v0.5.3
+              with:
+                  ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+            - name: Update Nginx
+              run: |
+                  ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
+                  scp -r nginx/* ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/etc/nginx

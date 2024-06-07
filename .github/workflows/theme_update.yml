@@ -1,0 +1,37 @@
+name: UPDATE THEME KEYCLOAK
+on:
+
+  workflow_dispatch:
+
+  workflow_run:
+    workflows: ["START SERVER V2"]
+    types:
+      - completed
+
+  push:
+    branches:
+      - main
+    paths:
+      - 'keycloak_themes/**'
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.5.3
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Upload theme
+      run: |
+        cd keycloak_themes && tar czf ../themes.tar.gz .
+        ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
+        scp ../themes.tar.gz ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/etc/keycloak_themes
+
+    - name: Unpack theme
+      run: |
+        ssh ${{ secrets.USERNAME }}@${{ secrets.HOST }} 'tar xzf /etc/keycloak_themes/themes.tar.gz -C /etc/keycloak_themes && rm /etc/keycloak_themes/themes.tar.gz'

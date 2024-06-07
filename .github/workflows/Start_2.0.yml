@@ -1,0 +1,97 @@
+name: START SERVER V2
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: ./Keycloak_front/package-lock.json
+
+    - name: Install dependencies
+      run: |
+        cd Keycloak_front
+        npm ci
+
+    - name: Build
+      run: |
+        cd Keycloak_front
+        npm run build
+
+    - name: Run tests
+      run: |
+        cd Keycloak_front
+        npm run test:ci
+    
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: dist
+        path: Keycloak_front/dist/
+    
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.5.3
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Copy Docker and directory setup script to host
+      run: |
+        ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
+        scp -r ./scripts ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/tmp
+
+    - name: Run Directory setup script
+      run: ssh ${{ secrets.USERNAME }}@${{ secrets.HOST }} 'bash /tmp/scripts/create_startup_directories.sh'
+
+    - name: Run Install Docker script
+      run: ssh ${{ secrets.USERNAME }}@${{ secrets.HOST }} 'bash /tmp/scripts/install_docker.sh'
+
+    - name: Change permissions of Directories
+      run: ssh ${{ secrets.USERNAME }}@${{ secrets.HOST }} 'sudo chown -R ${{ secrets.USERNAME }}:${{ secrets.USERNAME }} /etc/site_prod && sudo chown -R ${{ secrets.USERNAME }}:${{ secrets.USERNAME }} /etc/keycloak_themes && sudo chown -R ${{ secrets.USERNAME }}:${{ secrets.USERNAME }} /etc/certificados && sudo chown -R ${{secrets.USERNAME}}:${{secrets.USERNAME}} /etc/nginx'
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: dist
+      
+    - name: Copy build artifacts to host
+      run: |
+        cd Keycloak_front
+        scp -r dist/* ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/etc/site_prod
+
+    - name: Move certificate SSL
+      continue-on-error: true
+      run: |
+        ssh ${{ secrets.USERNAME }}@${{ secrets.HOST }} 'sudo cp /etc/letsencrypt/live/juansalles.com.br/fullchain.pem /etc/certificados && sudo cp /etc/letsencrypt/live/juansalles.com.br/privkey.pem /etc/certificados'
+
+    - name: Copy Docker Compose file to host
+      run: scp ./docker/docker-compose.yaml ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/home/${{ secrets.USERNAME }}
+
+    - name: Copy nginx configs to host
+      run: scp -r ./nginx/* ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/etc/nginx
+
+    - name: Clear docker containers
+      continue-on-error: true
+      run: ssh ${{ secrets.USERNAME }}@${{ secrets.HOST }} 'docker rm -f $(docker ps -a -q)'
+
+    - name: SetUp Evironment Variables, Delete all containers and Run Docker Compose on host
+      run: |
+        ssh ${{ secrets.USERNAME }}@${{ secrets.HOST }} "\
+        export KEYCLOAK_USER=${{ secrets.KEYCLOAK_USER }} && \
+        export KEYCLOAK_PASSWORD=${{ secrets.KEYCLOAK_PASSWORD }} && \
+        export DB_HOST=${{ secrets.DB_HOST }} && \
+        export DB_PORT=${{ secrets.DB_PORT }} && \
+        export DB_NAME=${{ secrets.DB_NAME }} && \
+        export DB_USER=${{ secrets.DB_USER }} && \
+        export DB_PASSWORD='${{ secrets.DB_PASSWORD }}' && \
+        docker-compose up -d"

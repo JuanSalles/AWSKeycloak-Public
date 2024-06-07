@@ -1,0 +1,69 @@
+name: Build Angular Project
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Keycloak_front/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'Keycloak_front/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: ./Keycloak_front/package-lock.json
+
+    - name: Install dependencies
+      run: |
+        cd Keycloak_front
+        npm ci
+
+    - name: Build
+      run: |
+        cd Keycloak_front
+        npm run build
+
+    - name: Run tests
+      run: |
+        cd Keycloak_front
+        npm run test:ci
+    
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: dist
+        path: Keycloak_front/dist/
+    
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.5.3
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: dist
+      
+    - name: Copy build artifacts to host
+    
+      run: |
+        ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
+        cd Keycloak_front
+        ls -la
+        scp -r dist/* ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/etc/site_prod
