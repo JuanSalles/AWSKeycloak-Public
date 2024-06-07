@@ -119,6 +119,9 @@ No seu repositório, configure as Secrets para utilizar o GitHub Actions:
 
 Dentro da pasta nginx/sites-available no repositório, há um site de exemplo. Mude o nome do arquivo para o domínio que foi configurado e edite o nome do domínio dentro do mesmo.
 
+#### ![](./images/print2.png) 
+#### ![](./images/print1.png)
+
 ### Executando o Workflow
 
 No GitHub Actions, após configurar todas as secrets, execute o workflow "Start_2.0.yml". Após a execução ser completada, tente acessar seu domínio.

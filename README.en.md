@@ -111,6 +111,9 @@ After creating your database server on RDS, follow the steps below:
 
 Inside the nginx/sites-available folder in the repository, there is an example site. Change the file name to the configured domain and edit the domain name inside it.
 
+#### ![](./images/print2.png) 
+#### ![](./images/print1.png)
+
 ### Running the Workflow
 
 In GitHub Actions, after configuring all secrets, run the "Start_2.0.yml" workflow. After execution completes, try accessing your domain.
