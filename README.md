@@ -41,7 +41,7 @@ KeycloakAWS é um projeto projetado para implantar uma instância EC2 na AWS com
 
 ### Criação da Instância
 
-Crie sua instância da AWS para um servidor Linux Ubuntu e abra as portas HTTP-80, HTTPS-443 e SSH-22. Agora, usando a chave SSH configurada na instância, vamos acessar nosso servidor.
+Crie sua instância da AWS para um servidor Amazon Linux ou Ubuntu e abra as portas HTTP-80, HTTPS-443 e SSH-22. Agora, usando a chave SSH configurada na instância, vamos acessar nosso servidor.
 
 ```bash
 ssh -i suaChavePrivada.pem seuUsuario@EnderecoDoHost
@@ -55,9 +55,17 @@ Após adquirir o IP público da sua instância, é necessário configurar o DNS 
 
 Primeiro, você precisará instalar o Certbot se não tiver:
 
-```bash
-sudo snap install --classic certbot
-```
+- ubuntu
+    ```bash
+    sudo snap install --classic certbot
+    ```
+- Amazon Linux
+    ```bash
+    sudo python3 -m venv /opt/certbot/
+    sudo /opt/certbot/bin/pip install --upgrade pip
+    sudo /opt/certbot/bin/pip install certbot
+    sudo ln -s /opt/certbot/bin/certbot /usr/bin/certbot
+    ```
 
 Depois, basta gerar gratuitamente seu certificado SSL:
 

@@ -41,7 +41,7 @@ KeycloakAWS is a project designed to deploy an EC2 instance on AWS with a web se
 
 ### Instance Creation
 
-Create your AWS instance for a Linux Ubuntu server and open HTTP-80, HTTPS-443, and SSH-22 ports. Now, using the SSH key configured in the instance, let's access our server.
+Create your AWS instance for a Linux Ubuntu or Amazon Linux server and open HTTP-80, HTTPS-443, and SSH-22 ports. Now, using the SSH key configured in the instance, let's access our server.
 
 ```bash
 ssh -i yourPrivateKey.pem yourUser@TheHostAddress
@@ -53,9 +53,17 @@ After acquiring the public IP of your instance, you need to configure the DNS of
 ### Generating SSL Certificate
 
 First, you will need to install Certbot if you don't have it:
-```bash
-sudo snap install --classic certbot
-```
+- ubuntu
+    ```bash
+    sudo snap install --classic certbot
+    ```
+- Amazon Linux
+    ```bash
+    sudo python3 -m venv /opt/certbot/
+    sudo /opt/certbot/bin/pip install --upgrade pip
+    sudo /opt/certbot/bin/pip install certbot
+    sudo ln -s /opt/certbot/bin/certbot /usr/bin/certbot
+    ```
 Then, simply generate your free SSL certificate:
 
 ```bash
